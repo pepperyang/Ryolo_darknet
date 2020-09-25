@@ -1,0 +1,2 @@
+darknet.exe detector train C:\Users\zheng\Desktop\darknet\darknet-master\build\darknet\x64\data\test0.data C:\Users\zheng\Desktop\darknet\darknet-master\build\darknet\x64\cfg\yolov3-tiny-test0.cfg
+pause

@@ -1,0 +1,3 @@
+for /r %i in (*.bmp) do @echo %i >> 2007_test.txt
+for /r %i in (*.bmp) do @echo %i >> 2007_train.txt
+pause

@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<hdevelop file_version="1.2" halcon_version="18.05.0.1">
+<procedure name="main">
+<interface/>
+<body>
+<l>dev_close_window ()</l>
+<l>get_current_dir(DirName)</l>
+<l>list_files(DirName+'/'+'JPEGImages',['files','recursive'], Files)</l>
+<l>tuple_regexp_select(Files, '.bmp', Files)</l>
+<l>for I:=0 to |Files|-1 by 1</l>
+<l>    read_image (Image, Files[I])</l>
+<l>    WindowWidth := 540</l>
+<l>    WindowHeight := 400</l>
+<l>    dev_open_window_fit_size (0, 0, WindowWidth, WindowHeight, -1, -1, WindowHandle1)</l>
+<l>    get_image_size (Image, ImageWidth, ImageHeight)</l>
+<l>    dev_set_part (0, 0, ImageHeight, ImageWidth)</l>
+<l>    set_display_font (WindowHandle1, 16, 'mono', 'true', 'false')</l>
+<l>    dev_set_line_width (3)</l>
+<l>    dev_display (Image)</l>
+<l>    dev_set_draw ('margin')</l>
+<l>    threshold (Image, Region, 0, 105)</l>
+<l>    closing_circle (Region, RegionClosing, 13)</l>
+<l>    connection (RegionClosing, ConnectedRegions)</l>
+<l>*     select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 500, 800000)</l>
+<l>*     select_shape (SelectedRegions, SelectedRegions0, 'area', 'and',0, 2500)</l>
+<l>*     select_shape (SelectedRegions, SelectedRegions1, 'area', 'and',4000, 5100)</l>
+<l>*     select_shape (SelectedRegions, SelectedRegions2, 'area', 'and',5100, 10000)</l>
+<l>*     select_shape (SelectedRegions, SelectedRegions3, 'area', 'and',10000, 20000)</l>
+<l>*     select_shape (SelectedRegions, SelectedRegions4, 'area', 'and',22000, 25000)</l>
+<l>*     select_shape (SelectedRegions, SelectedRegions5, 'area', 'and',25000, 27000)</l>
+<l>*     select_shape (SelectedRegions, SelectedRegions6, 'area', 'and',27000, 888000)</l>
+<l>*     Min_area := [ 3500,1500,4500,20000,15000,20000,22000]</l>
+<l>*     Max_area := [4500,5000,10000,27000,25000,27000,888000]</l>
+<l>*       Min_ra := [ 0, 85,100,150,150,45,55]</l>
+<l>*       Max_ra := [90,120,150,180,180,60,70]</l>
+<l>*     for Index1 := 0 to 6 by 1</l>
+<l>    *select_shape (ConnectedRegions, SelectedRegions0, 'ra', 'and', Min_ra[Index1], Max_ra[Index1])</l>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 2000, 10000)</l>
+<l>    area_center (SelectedRegions, Area, Row0, Column0)//region的中心点（大）</l>
+<l>    gen_cross_contour_xld (Cross, Row0, Column0, 100, 0)</l>
+<l>    elliptic_axis (SelectedRegions, Ra, Rb, Phi)</l>
+<l>    StartRow := Row0 + sin(Phi) * Ra</l>
+<l>    StartColumn := Column0 - cos(Phi) * Ra</l>
+<l>    EndRow := Row0 - sin(Phi) * Ra</l>
+<l>    EndColumn := Column0 + cos(Phi) * Ra</l>
+<l>    gen_region_line (RegionLines, StartRow, StartColumn, EndRow, EndColumn)</l>
+<l>    difference (RegionLines, SelectedRegions, RegionDifference)</l>
+<l>    difference (RegionLines,RegionDifference, RegionDifference1)</l>
+<l>    area_center (RegionDifference1, Area, Row, Column)//线段中心点（小）</l>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 50, 0)</l>
+<l>    smallest_rectangle2 (RegionDifference1, Row1, Column1, Phi1, Length1, Length2)</l>
+<l>    dev_display (Image)</l>
+<l>    gen_rectangle2 (Rectangle1, Row, Column, Phi,Length1,Rb )</l>
+<l>    smallest_rectangle1 (Rectangle1, Row11, Column11, Row21, Column21)</l>
+<l>    *area_center (Rectangle1, Area, Row, Column)</l>
+<l>    gen_rectangle1 (Rectangle2, Row11, Column11, Row21, Column21)</l>
+<l>    pidu:=Phi1*180/3.14+90</l>
+<l>    width := Column21-Column11</l>
+<l>    height := Row21-Row11</l>
+<l>    labeldir := 'label'</l>
+<l>    parse_filename(Files[I], BaseName, Extension, Directory)</l>
+<l>    for Index := 0 to |Phi1|-1 by 1</l>
+<l>        filedir := DirName+'\\'+'label\\'+BaseName+'.txt'</l>
+<l>        file_exists (labeldir, FileExists)</l>
+<l>        file_exists (filedir, FileExists1)</l>
+<l>        if (FileExists = 0)</l>
+<l>            make_dir (labeldir)</l>
+<l>        endif</l>
+<l>        judg := Row0[Index]-Row[Index]</l>
+<l>        if (judg&gt;0)</l>
+<l>            judg := 1</l>
+<l>        endif</l>
+<l>        if (judg&lt;0)</l>
+<l>            judg :=0</l>
+<l>        endif</l>
+<l>        adv := 1</l>
+<c></c>
+<l>        if (Phi1[Index]&gt;0)</l>
+<l>            s1 := cos(Phi1) * Length1*2</l>
+<l>            s2 := sin(Phi1) * Length1*2</l>
+<l>            gen_cross_contour_xld (Cross, Row11[Index]+s2[Index], Column11[Index], 100, 0)</l>
+<l>            rate2[Index]:= (s2[Index])/height[Index]</l>
+<l>            gen_cross_contour_xld (Cross, Row11[Index], s1[Index]+Column11[Index], 100, 0)</l>
+<l>            rate1[Index]:= (s1[Index])/width[Index]</l>
+<l>            x1:=Column11[Index]</l>
+<l>            x2:=Column11[Index]+width[Index]-s1[Index]</l>
+<l>            x3:=Column21[Index]</l>
+<l>            x4:=Column11[Index]+s1[Index]</l>
+<l>            y1:=Row11[Index]+s2[Index]</l>
+<l>            y2:=Row21[Index]</l>
+<l>            y3:=Row21[Index]-s2[Index]</l>
+<l>            y4:=Row11[Index]</l>
+<l>            row:=int(x2+(x3-x2)/2)</l>
+<l>            if (judg==0)</l>
+<l>               disp_arrow (WindowHandle1, Row[Index], Column[Index],int(y1+(y2-y1)/2),int(x1+(x2-x1)/2), 1)</l>
+<l>            else</l>
+<l>               disp_arrow (WindowHandle1, Row[Index], Column[Index],int(y4+(y3-y4)/2), int(x4+(x3-x4)/2), 1)</l>
+<l>            endif</l>
+<c></c>
+<l>            if (FileExists1 =1)</l>
+<l>                 fwrite_string (FileHandle, [0,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judg,' ',adv,'\n'])</l>
+<c> </c>
+<l>            endif  </l>
+<l>            if (FileExists1 =0)</l>
+<l>                 open_file(filedir, 'output', FileHandle)</l>
+<l>                 fwrite_string (FileHandle, [0,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judg,' ',adv,'\n'])</l>
+<c></c>
+<l>            endif</l>
+<l>        endif</l>
+<l>        if (Phi1[Index]&lt;0)</l>
+<l>             s1 := abs(sin(Phi1)) * Rb*2</l>
+<l>             s2 := abs(cos(Phi1)) * Rb*2</l>
+<l>             gen_cross_contour_xld (Cross, Row11[Index]+s2[Index], Column11[Index], 100, 0)</l>
+<l>             rate2[Index]:= (abs(s2[Index]))/height[Index]</l>
+<l>             gen_cross_contour_xld (Cross, Row11[Index], s1[Index]+Column11[Index], 100, 0)</l>
+<l>             rate1[Index]:= (abs(s1[Index]))/width[Index]</l>
+<l>             x1:=Column11[Index]</l>
+<l>             x2:=Column11[Index]+width[Index]-s1[Index]</l>
+<l>             x3:=Column21[Index]</l>
+<l>             x4:=Column11[Index]+s1[Index]</l>
+<l>             y1:=Row11[Index]+s2[Index]</l>
+<l>             y2:=Row21[Index]</l>
+<l>             y3:=Row21[Index]-s2[Index]</l>
+<l>             y4:=Row11[Index]</l>
+<l>            if (judg==0)</l>
+<l>                disp_arrow (WindowHandle1, Row[Index], Column[Index],int(y3+(y2-y3)/2),int(x2+(x3-x2)/2), 1)</l>
+<l>            else</l>
+<l>                disp_arrow (WindowHandle1, Row[Index], Column[Index],int(y4+(y1-y4)/2),int(x1+(x4-x1)/2), 1)</l>
+<l>            endif</l>
+<l>             if (FileExists1 =1)</l>
+<l>                  fwrite_string (FileHandle, [0,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judg,' ',adv,'\n'])</l>
+<c></c>
+<l>             endif  </l>
+<l>             if (FileExists1 =0)</l>
+<l>                  open_file(filedir, 'output', FileHandle)</l>
+<l>                  fwrite_string (FileHandle, [0,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judg,' ',adv,'\n'])</l>
+<c>             </c>
+<l>             endif</l>
+<l>        endif</l>
+<l>        if (Phi1[Index]=0)</l>
+<l>            judge:=Column0[Index]-Column[Index]</l>
+<l>            if (judge&gt;0)</l>
+<l>                judge := 1</l>
+<l>            endif</l>
+<l>            if (judge&lt;0)</l>
+<l>                judge :=0</l>
+<l>            endif</l>
+<l>            s1 := 0</l>
+<l>            s2 := 2*Rb</l>
+<l>            gen_cross_contour_xld (Cross, Row11[Index]+s2[Index], Column11[Index], 100, 0)</l>
+<l>            rate2[Index]:= 1</l>
+<l>            gen_cross_contour_xld (Cross, Row11[Index], Column11[Index]+s1, 100, 0)</l>
+<l>            rate1[Index]:= 0</l>
+<l>            if (judg==0)</l>
+<l>                    disp_arrow (WindowHandle1, Row[Index], Column[Index],Row11[Index]+Rb[Index],Column11[Index], 1)</l>
+<l>                else</l>
+<l>                    disp_arrow (WindowHandle1, Row[Index], Column[Index],Row21[Index]+Rb[Index], Column21[Index], 1)</l>
+<l>                endif</l>
+<c>            </c>
+<l>            if (FileExists1 =1)</l>
+<l>                  fwrite_string (FileHandle, [0,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judge,' ',adv,'\n'])</l>
+<l>            endif  </l>
+<l>            if (FileExists1 =0)</l>
+<l>                 open_file(filedir, 'output', FileHandle)</l>
+<l>                 fwrite_string (FileHandle, [0,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judge,' ',adv,'\n'])</l>
+<l>            endif</l>
+<l>        endif</l>
+<l>    endfor</l>
+<c>    ***********************************************************************************</c>
+<l>    select_shape (ConnectedRegions, SelectedRegions, 'area', 'and', 10000, 88888)</l>
+<l>    area_center (SelectedRegions, Area, Row0, Column0)//region的中心点（大）</l>
+<l>    gen_cross_contour_xld (Cross, Row0, Column0, 100, 0)</l>
+<l>    elliptic_axis (SelectedRegions, Ra, Rb, Phi)</l>
+<l>    StartRow := Row0 + sin(Phi) * Ra</l>
+<l>    StartColumn := Column0 - cos(Phi) * Ra</l>
+<l>    EndRow := Row0 - sin(Phi) * Ra</l>
+<l>    EndColumn := Column0 + cos(Phi) * Ra</l>
+<l>    gen_region_line (RegionLines, StartRow, StartColumn, EndRow, EndColumn)</l>
+<l>    difference (RegionLines, SelectedRegions, RegionDifference)</l>
+<l>    difference (RegionLines,RegionDifference, RegionDifference1)</l>
+<l>    area_center (RegionDifference1, Area, Row, Column)//线段中心点（小）</l>
+<l>    gen_cross_contour_xld (Cross, Row, Column, 50, 0)</l>
+<l>    smallest_rectangle2 (RegionDifference1, Row1, Column1, Phi1, Length1, Length2)</l>
+<l>*     dev_display (Image)</l>
+<l>    gen_rectangle2 (Rectangle1, Row, Column, Phi,Length1,Rb )</l>
+<l>    smallest_rectangle1 (Rectangle1, Row11, Column11, Row21, Column21)</l>
+<l>    *area_center (Rectangle1, Area, Row, Column)</l>
+<l>    gen_rectangle1 (Rectangle2, Row11, Column11, Row21, Column21)</l>
+<l>    pidu:=Phi1*180/3.14+90</l>
+<l>    width := Column21-Column11</l>
+<l>    height := Row21-Row11</l>
+<l>    labeldir := 'label'</l>
+<l>    parse_filename(Files[I], BaseName, Extension, Directory)</l>
+<l>    for Index := 0 to |Phi1|-1 by 1</l>
+<l>        filedir := DirName+'\\'+'label\\'+BaseName+'.txt'</l>
+<l>        file_exists (labeldir, FileExists)</l>
+<l>        file_exists (filedir, FileExists1)</l>
+<l>        if (FileExists = 0)</l>
+<l>            make_dir (labeldir)</l>
+<l>        endif</l>
+<c></c>
+<l>        judg := Row0[Index]-Row[Index]</l>
+<l>        if (judg&gt;0)</l>
+<l>            judg := 1</l>
+<l>        endif</l>
+<l>        if (judg&lt;0)</l>
+<l>            judg :=0</l>
+<l>        endif</l>
+<c></c>
+<l>        adv := 0</l>
+<c></c>
+<l>        if (Phi1[Index]&gt;0)</l>
+<l>            s1 := cos(Phi1) * Length1*2</l>
+<l>            s2 := sin(Phi1) * Length1*2</l>
+<l>            gen_cross_contour_xld (Cross, Row11[Index]+s2[Index], Column11[Index], 100, 0)</l>
+<l>            rate2[Index]:= (s2[Index])/height[Index]</l>
+<l>            gen_cross_contour_xld (Cross, Row11[Index], s1[Index]+Column11[Index], 100, 0)</l>
+<l>            rate1[Index]:= (s1[Index])/width[Index]</l>
+<l>            x1:=Column11[Index]</l>
+<l>            x2:=Column11[Index]+width[Index]-s1[Index]</l>
+<l>            x3:=Column21[Index]</l>
+<l>            x4:=Column11[Index]+s1[Index]</l>
+<l>            y1:=Row11[Index]+s2[Index]</l>
+<l>            y2:=Row21[Index]</l>
+<l>            y3:=Row21[Index]-s2[Index]</l>
+<l>            y4:=Row11[Index]</l>
+<l>            row:=int(x2+(x3-x2)/2)</l>
+<c></c>
+<c>                </c>
+<c>               </c>
+<l>            if (judg&gt;0)</l>
+<l>                disp_arrow (WindowHandle1, Row[Index], Column[Index],int(y4+(y1-y4)/2),int(x1+(x4-x1)/2), 1)</l>
+<l>            else</l>
+<l>                disp_arrow (WindowHandle1, Row[Index], Column[Index],int(y3+(y2-y3)/2),int(x2+(x3-x2)/2), 1)</l>
+<c>                </c>
+<l>            endif</l>
+<c></c>
+<l>            if (FileExists1 =1)</l>
+<l>                 fwrite_string (FileHandle, [1,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judg,' ',adv,'\n'])</l>
+<c> </c>
+<l>            endif  </l>
+<l>            if (FileExists1 =0)</l>
+<l>                 open_file(filedir, 'output', FileHandle)</l>
+<l>                 fwrite_string (FileHandle, [1,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judg,' ',adv,'\n'])</l>
+<c></c>
+<l>            endif</l>
+<l>        endif</l>
+<l>        if (Phi1[Index]&lt;0)</l>
+<l>             s1 := abs(sin(Phi1)) * Rb*2</l>
+<l>             s2 := abs(cos(Phi1)) * Rb*2</l>
+<l>             gen_cross_contour_xld (Cross, Row11[Index]+s2[Index], Column11[Index], 100, 0)</l>
+<l>             rate2[Index]:= (abs(s2[Index]))/height[Index]</l>
+<l>             gen_cross_contour_xld (Cross, Row11[Index], s1[Index]+Column11[Index], 100, 0)</l>
+<l>             rate1[Index]:= (abs(s1[Index]))/width[Index]</l>
+<l>             x1:=Column11[Index]</l>
+<l>             x2:=Column11[Index]+width[Index]-s1[Index]</l>
+<l>             x3:=Column21[Index]</l>
+<l>             x4:=Column11[Index]+s1[Index]</l>
+<l>             y1:=Row11[Index]+s2[Index]</l>
+<l>             y2:=Row21[Index]</l>
+<l>             y3:=Row21[Index]-s2[Index]</l>
+<l>             y4:=Row11[Index]</l>
+<c>             </c>
+<l>             if (judg&gt;0)</l>
+<l>                 disp_arrow (WindowHandle1, Row[Index], Column[Index],int(y1+(y2-y1)/2),int(x1+(x2-x1)/2), 1)</l>
+<l>             else</l>
+<l>                 disp_arrow (WindowHandle1, Row[Index], Column[Index],int(y4+(y3-y4)/2),int(x4+(x3-x4)/2), 1)</l>
+<l>             endif</l>
+<c>                 </c>
+<c></c>
+<l>             if (FileExists1 =1)</l>
+<l>                  fwrite_string (FileHandle, [1,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judg,' ',adv,'\n'])</l>
+<c></c>
+<l>             endif  </l>
+<l>             if (FileExists1 =0)</l>
+<l>                 open_file(filedir, 'output', FileHandle)</l>
+<l>                 fwrite_string (FileHandle, [1,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judg,' ',adv,'\n'])</l>
+<c>             </c>
+<l>             endif</l>
+<l>        endif</l>
+<l>*         if (Phi1[Index]=0)</l>
+<l>*             judge:=Column0[Index]-Column[Index]</l>
+<l>*             if (judge&gt;0)</l>
+<l>*                 judge := 1</l>
+<l>*             endif</l>
+<l>*             if (judge&lt;0)</l>
+<l>*                 judge :=0</l>
+<l>*             endif</l>
+<l>*             s1 := 0</l>
+<l>*             s2 := 2*Rb</l>
+<l>*             gen_cross_contour_xld (Cross, Row11[Index]+s2[Index], Column11[Index], 100, 0)</l>
+<l>*             rate2[Index]:= 1</l>
+<l>*             gen_cross_contour_xld (Cross, Row11[Index], Column11[Index]+s1, 100, 0)</l>
+<l>*             rate1[Index]:= 0</l>
+<l>*             if (judg==0)</l>
+<l>*                     disp_arrow (WindowHandle1, Row[Index], Column[Index],Row11[Index]+Rb[Index],Column11[Index], 1)</l>
+<l>*                 else</l>
+<l>*                     disp_arrow (WindowHandle1, Row[Index], Column[Index],Row21[Index]+Rb[Index], Column21[Index], 1)</l>
+<l>*                 endif</l>
+<c>            </c>
+<l>*             if (FileExists1 =1)</l>
+<l>*                  fwrite_string (FileHandle, [0,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judge,' ','adv','\n'])</l>
+<l>*             endif  </l>
+<l>*             if (FileExists1 =0)</l>
+<l>*                 open_file(filedir, 'output', FileHandle)</l>
+<l>*                 fwrite_string (FileHandle, [0,' ',Column[Index]/ImageWidth,' ', Row[Index]/ImageHeight,' ',1.0*width[Index]/ImageWidth,' ',1.0*height[Index]/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',judge,' ','adv','\n'])</l>
+<l>*             endif</l>
+<l>*         endif</l>
+<l>    endfor</l>
+<l>    dump_window_image (Image, WindowHandle1)</l>
+<l>    write_image (Image, 'jpg', 1, DirName +'1'+(I))</l>
+<l>endfor</l>
+<c></c>
+<c></c>
+</body>
+<docu id="main">
+<parameters/>
+</docu>
+</procedure>
+<procedure name="write">
+<interface>
+<oo>
+<par name="Cross" base_type="iconic" dimension="0"/>
+</oo>
+<ic>
+<par name="Phi1" base_type="ctrl" dimension="0"/>
+<par name="labeldir" base_type="ctrl" dimension="0"/>
+<par name="Length1" base_type="ctrl" dimension="0"/>
+<par name="width" base_type="ctrl" dimension="0"/>
+<par name="height" base_type="ctrl" dimension="0"/>
+<par name="Row11" base_type="ctrl" dimension="0"/>
+<par name="Column21" base_type="ctrl" dimension="0"/>
+<par name="Row21" base_type="ctrl" dimension="0"/>
+<par name="Column11" base_type="ctrl" dimension="0"/>
+<par name="FileHandle" base_type="ctrl" dimension="0"/>
+<par name="Column" base_type="ctrl" dimension="0"/>
+<par name="Row" base_type="ctrl" dimension="0"/>
+<par name="ImageWidth" base_type="ctrl" dimension="0"/>
+<par name="ImageHeight" base_type="ctrl" dimension="0"/>
+<par name="pidu" base_type="ctrl" dimension="0"/>
+<par name="Width" base_type="ctrl" dimension="0"/>
+<par name="Height" base_type="ctrl" dimension="0"/>
+<par name="Width1" base_type="ctrl" dimension="0"/>
+<par name="Height1" base_type="ctrl" dimension="0"/>
+</ic>
+<oc>
+<par name="Index" base_type="ctrl" dimension="0"/>
+<par name="filedir" base_type="ctrl" dimension="0"/>
+<par name="FileExists" base_type="ctrl" dimension="0"/>
+<par name="FileExists1" base_type="ctrl" dimension="0"/>
+<par name="s1" base_type="ctrl" dimension="0"/>
+<par name="s2" base_type="ctrl" dimension="0"/>
+<par name="rate1" base_type="ctrl" dimension="0"/>
+<par name="rate2" base_type="ctrl" dimension="0"/>
+<par name="FileHandleOut" base_type="ctrl" dimension="0"/>
+</oc>
+</interface>
+<body>
+<l>FileHandleOut := FileHandle</l>
+<l>    for Index := 0 to |Phi1|-1 by 1</l>
+<l>        filedir := 'Files[Index]'+'.txt'</l>
+<l>        file_exists (labeldir, FileExists)</l>
+<l>        file_exists (filedir, FileExists1)</l>
+<l>        if (FileExists = 0)</l>
+<l>            make_dir (labeldir)</l>
+<l>        endif</l>
+<l>        if (Phi1[Index]&gt;0)</l>
+<l>            s1 := cos(Phi1) * Length1*2</l>
+<l>            s2 := sin(Phi1) * Length1*2</l>
+<l>            rate1:=s1/width</l>
+<l>            rate2 :=s2/height</l>
+<l>            gen_cross_contour_xld (Cross, Row11[Index]+height[Index]-s2[Index], Column21[Index], 100, 0)</l>
+<l>            rate2[Index]:= (height[Index]-s2[Index])/height[Index]</l>
+<l>            gen_cross_contour_xld (Cross, Row21[Index], width[Index]-s1[Index]+Column11[Index], 100, 0)</l>
+<l>            rate1[Index]:= (width[Index]-s1[Index])/width[Index]</l>
+<c></c>
+<c>            </c>
+<c>            </c>
+<l>            if (FileExists1 =1)</l>
+<l>                    fwrite_string (FileHandleOut, [0,' ',Column/width,' ', Row/height,' ',1.0*width/ImageWidth,' ',1.0*height/ImageHeight,' ',rate1[Index],' ',rate2[Index],' ',pidu[Index],'\n'])</l>
+<l>            endif  </l>
+<l>            if (FileExists1 =0)</l>
+<l>                    open_file (filedir, 'output', FileHandleOut)</l>
+<l>                    fwrite_string (FileHandleOut, [0,' ',Column/Width,' ', Row/Height,' ',1.0*Width1/Width,' ',1.0*Height1/Height,'\n'])</l>
+<l>            endif</l>
+<c>            </c>
+<c>            </c>
+<c>            </c>
+<l>        endif</l>
+<l>        if (Phi1[Index]&lt;0)</l>
+<l>            s1 := cos(Phi1) * Length1*2</l>
+<l>            s2 := sin(Phi1) * Length1*2</l>
+<l>            rate1:=s1/width</l>
+<l>            rate2 :=s2/height</l>
+<l>            gen_cross_contour_xld (Cross, Row21[Index]+s2[Index], Column11[Index], 100, 0)</l>
+<l>            rate2[Index]:= (height[Index]-s2[Index])/height[Index]</l>
+<l>            gen_cross_contour_xld (Cross, Row21[Index], s1[Index]+Column11[Index], 100, 0)</l>
+<l>            rate1[Index]:= (width[Index]-s1[Index])/width[Index]</l>
+<l>        endif</l>
+<l>    endfor</l>
+<l>return ()</l>
+</body>
+<docu id="write">
+<parameters>
+<parameter id="Column"/>
+<parameter id="Column11"/>
+<parameter id="Column21"/>
+<parameter id="Cross"/>
+<parameter id="FileExists"/>
+<parameter id="FileExists1"/>
+<parameter id="FileHandle"/>
+<parameter id="FileHandleOut"/>
+<parameter id="Height"/>
+<parameter id="Height1"/>
+<parameter id="ImageHeight"/>
+<parameter id="ImageWidth"/>
+<parameter id="Index"/>
+<parameter id="Length1"/>
+<parameter id="Phi1"/>
+<parameter id="Row"/>
+<parameter id="Row11"/>
+<parameter id="Row21"/>
+<parameter id="Width"/>
+<parameter id="Width1"/>
+<parameter id="filedir"/>
+<parameter id="height"/>
+<parameter id="labeldir"/>
+<parameter id="pidu"/>
+<parameter id="rate1"/>
+<parameter id="rate2"/>
+<parameter id="s1"/>
+<parameter id="s2"/>
+<parameter id="width"/>
+</parameters>
+</docu>
+</procedure>
+</hdevelop>

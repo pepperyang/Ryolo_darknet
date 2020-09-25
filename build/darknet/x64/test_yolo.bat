@@ -1,0 +1,2 @@
+darknet.exe detector test C:\Users\zheng\Desktop\darknet\darknet-master\build\darknet\x64\data\coco.data C:\Users\zheng\Desktop\darknet\darknet-master\build\darknet\x64\cfg\yolov3.cfg C:\Users\zheng\Desktop\darknet\darknet-master\build\darknet\x64\backup\yolov3.weights
+pause

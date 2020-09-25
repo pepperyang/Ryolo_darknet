@@ -1,0 +1,2 @@
+darknet.exe segmented test C:\Users\zheng\Desktop\darknet-master\build\darknet\x64\data\seg.data C:\Users\zheng\Desktop\darknet-master\build\darknet\x64\cfg\segment12.cfg C:\Users\zheng\Desktop\darknet-master\build\darknet\x64\backup\segment12.weights
+pause
