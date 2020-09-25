@@ -1,6 +1,6 @@
 # Ryolo_darknet
 Rotating object detection based on yolo
-# darknet-Ryolo-segmentation for Windows and Linux
+# Darknet-Ryolo-Segmentation For Windows and Linux
 This project is based on darknet to get image segmentation and rotational object detection
 
 1、"make -j8"  or  build with vs2019   
