@@ -41,11 +41,18 @@ dxrep dx_Rbox_iou(Rbox a, Rbox b, IOU_LOSS iou_loss);//Ryolo
 float box_giou(box a, box b);
 float box_diou(box a, box b);
 float box_ciou(box a, box b);
+float Rbox_iou(Rbox a, Rbox b);//Ryolo
 dbox diou(box a, box b);
 boxabs to_Rtblr(Rbox a);//Ryolo
-boxabs to_tblr(box a);
+boxabs to_tblr(box a);//Ryolo
+boxabs Rbox_c(Rbox a, Rbox b);//Ryolo
 void do_nms(box *boxes, float **probs, int total, int classes, float thresh);
 void do_nms_sort_v2(box *boxes, float **probs, int total, int classes, float thresh);
+LIB_API void Ryolo_diounms_sort(detection* dets, int total, int classes, float thresh, NMS_KIND nms_kind, float beta1);//Ryolo
+LIB_API void Ryolo_do_nms_sort(detection* dets, int total, int classes, float thresh);//Ryolo
+float Rbox_intersection(Rbox a, Rbox b);//Ryolo
+float Rbox_union(Rbox a, Rbox b);//Ryolo
+float Rbox_intersection(Rbox a, Rbox b);//Ryolo
 //LIB_API void do_nms_sort(detection *dets, int total, int classes, float thresh);
 //LIB_API void do_nms_obj(detection *dets, int total, int classes, float thresh);
 //LIB_API void diounms_sort(detection *dets, int total, int classes, float thresh, NMS_KIND nms_kind, float beta1);

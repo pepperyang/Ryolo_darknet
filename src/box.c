@@ -121,6 +121,15 @@ boxabs box_c(box a, box b) {
     ba.right = fmax(a.x + a.w / 2, b.x + b.w / 2);
     return ba;
 }
+//Ryolo
+boxabs Rbox_c(Rbox a, Rbox b) {
+	boxabs ba = { 0 };
+	ba.top = fmin(a.y - a.h / 2, b.y - b.h / 2);
+	ba.bot = fmax(a.y + a.h / 2, b.y + b.h / 2);
+	ba.left = fmin(a.x - a.w / 2, b.x - b.w / 2);
+	ba.right = fmax(a.x + a.w / 2, b.x + b.w / 2);
+	return ba;
+}
 
 
 
@@ -162,6 +171,16 @@ float overlap(float x1, float w1, float x2, float w2)
     return right - left;
 }
 
+//Ryolo
+float Rbox_intersection(Rbox a, Rbox b)
+{
+	float w = overlap(a.x, a.w, b.x, b.w);
+	float h = overlap(a.y, a.h, b.y, b.h);
+	if (w < 0 || h < 0) return 0;
+	float area = w * h;
+	return area;
+}
+
 float box_intersection(box a, box b)
 {
     float w = overlap(a.x, a.w, b.x, b.w);
@@ -172,6 +191,15 @@ float box_intersection(box a, box b)
 }
 
 
+
+
+//Ryolo
+float Rbox_union(Rbox a, Rbox b)
+{
+	float i = Rbox_intersection(a, b);
+	float u = a.w * a.h + b.w * b.h - i;
+	return u;
+}
 float box_union(box a, box b)
 {
     float i = box_intersection(a, b);
@@ -203,7 +231,17 @@ float Rbox_iou_kind(Rbox a, Rbox b, IOU_LOSS iou_kind)
     }
     return Rbox_iou(a, b);
 }
-
+//Ryolo
+float Rbox_iou(Rbox a, Rbox b)
+{
+	//return box_intersection(a, b)/box_union(a, b);
+	float I = Rbox_intersection(a, b);
+	float U = Rbox_union(a, b);
+	if (I == 0 || U == 0) {
+		return 0;
+	}
+	return I / U;
+}
 float box_iou(box a, box b)
 {
     //return box_intersection(a, b)/box_union(a, b);
@@ -285,6 +323,25 @@ float box_diounms(box a, box b, float beta1)
     printf("  c: %f, u: %f, riou_term: %f\n", c, u, diou_term);
 #endif
     return iou - diou_term;
+}
+//Ryolo
+float Rbox_diounms(Rbox a, Rbox b, float beta1)
+{
+	boxabs ba = Rbox_c(a, b);
+	float w = ba.right - ba.left;
+	float h = ba.bot - ba.top;
+	float c = w * w + h * h;
+	float iou = Rbox_iou(a, b);
+	if (c == 0) {
+		return iou;
+	}
+	float d = (a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y);
+	float u = pow(d / c, beta1);
+	float diou_term = u;
+#ifdef DEBUG_PRINTS
+	printf("  c: %f, u: %f, riou_term: %f\n", c, u, diou_term);
+#endif
+	return iou - diou_term;
 }
 
 // https://github.com/Zzh-tju/DIoU-darknet
@@ -1221,7 +1278,40 @@ void do_nms_sort(detection *dets, int total, int classes, float thresh)
         }
     }
 }
+//Ryolo
+void Ryolo_do_nms_sort(detection* dets, int total, int classes, float thresh)
+{
+	int i, j, k;
+	k = total - 1;
+	for (i = 0; i <= k; ++i) {
+		if (dets[i].objectness == 0) {
+			detection swap = dets[i];
+			dets[i] = dets[k];
+			dets[k] = swap;
+			--k;
+			--i;
+		}
+	}
+	total = k + 1;
 
+	for (k = 0; k < classes; ++k) {
+		for (i = 0; i < total; ++i) {
+			dets[i].sort_class = k;
+		}
+		qsort(dets, total, sizeof(detection), nms_comparator_v3);
+		for (i = 0; i < total; ++i) {
+			//printf("  k = %d, \t i = %d \n", k, i);
+			if (dets[i].prob[k] == 0) continue;
+			Rbox a = dets[i].Rbbox;
+			for (j = i + 1; j < total; ++j) {
+				Rbox b = dets[j].Rbbox;
+				if (Rbox_iou(a, b) > thresh) {
+					dets[j].prob[k] = 0;
+				}
+			}
+		}
+	}
+}
 void do_nms(box *boxes, float **probs, int total, int classes, float thresh)
 {
     int i, j, k;
@@ -1297,6 +1387,70 @@ void diounms_sort(detection *dets, int total, int classes, float thresh, NMS_KIN
                 }
                 else {
                     if (box_diounms(a, b, beta1) > thresh && nms_kind == DIOU_NMS) {
+                        dets[j].prob[k] = 0;
+                    }
+                }
+            }
+
+            //if ((nms_kind == CORNERS_NMS) && (dets[i].points != (YOLO_CENTER | YOLO_LEFT_TOP | YOLO_RIGHT_BOTTOM)))
+            //    dets[i].prob[k] = 0;
+        }
+    }
+}
+//Ryolo
+void Ryolo_diounms_sort(detection* dets, int total, int classes, float thresh, NMS_KIND nms_kind, float beta1)
+{
+    int i, j, k;
+    k = total - 1;
+    for (i = 0; i <= k; ++i) {
+        if (dets[i].objectness == 0) {
+            detection swap = dets[i];
+            dets[i] = dets[k];
+            dets[k] = swap;
+            --k;
+            --i;
+        }
+    }
+    total = k + 1;
+
+    for (k = 0; k < classes; ++k) {
+        for (i = 0; i < total; ++i) {
+            dets[i].sort_class = k;
+        }
+        qsort(dets, total, sizeof(detection), nms_comparator_v3);
+        for (i = 0; i < total; ++i)
+        {
+            if (dets[i].prob[k] == 0) continue;
+            Rbox a = dets[i].Rbbox;
+            for (j = i + 1; j < total; ++j) {
+                Rbox b = dets[j].Rbbox;
+                if (Rbox_iou(a, b) > thresh && nms_kind == CORNERS_NMS)
+                {
+                    float sum_prob = pow(dets[i].prob[k], 2) + pow(dets[j].prob[k], 2);
+                    float alpha_prob = pow(dets[i].prob[k], 2) / sum_prob;
+                    float beta_prob = pow(dets[j].prob[k], 2) / sum_prob;
+                    //dets[i].bbox.x = (dets[i].bbox.x*alpha_prob + dets[j].bbox.x*beta_prob);
+                    //dets[i].bbox.y = (dets[i].bbox.y*alpha_prob + dets[j].bbox.y*beta_prob);
+                    //dets[i].bbox.w = (dets[i].bbox.w*alpha_prob + dets[j].bbox.w*beta_prob);
+                    //dets[i].bbox.h = (dets[i].bbox.h*alpha_prob + dets[j].bbox.h*beta_prob);
+                    /*
+                    if (dets[j].points == YOLO_CENTER && (dets[i].points & dets[j].points) == 0) {
+                        dets[i].bbox.x = (dets[i].bbox.x*alpha_prob + dets[j].bbox.x*beta_prob);
+                        dets[i].bbox.y = (dets[i].bbox.y*alpha_prob + dets[j].bbox.y*beta_prob);
+                    }
+                    else if ((dets[i].points & dets[j].points) == 0) {
+                        dets[i].bbox.w = (dets[i].bbox.w*alpha_prob + dets[j].bbox.w*beta_prob);
+                        dets[i].bbox.h = (dets[i].bbox.h*alpha_prob + dets[j].bbox.h*beta_prob);
+                    }
+                    dets[i].points |= dets[j].points;
+                    */
+                    dets[j].prob[k] = 0;
+                }
+                else if (Rbox_iou(a, b) > thresh && nms_kind == GREEDY_NMS) {
+                    dets[j].prob[k] = 0;
+                }
+                else {
+                    if (Rbox_diounms(a, b, beta1) > thresh && nms_kind == DIOU_NMS) {
                         dets[j].prob[k] = 0;
                     }
                 }

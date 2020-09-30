@@ -26,7 +26,7 @@ char* GetFilename(char* p)//Ryolo
 {
     static char name[20] = { "" };
     char* q = strrchr(p, '\\') + 1;
-    strncpy(name, q, 23);
+    strncpy(name, q, 10);
     return name;
 }
 void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, int mjpeg_port, int show_imgs, int benchmark_layers, char* chart_path)
@@ -566,7 +566,7 @@ void train_Rdetector(char* datacfg, char* cfgfile, char* weightfile, int* gpus, 
     net.train_images_num = train_images_num;
     args.d = &buffer;
     args.type = RDETECTION_DATA;
-    args.threads = 1;    // 16 or 64
+    args.threads = 64;    // 16 or 64
 
     args.angle = net.angle;
     args.gaussian_noise = net.gaussian_noise;
@@ -1841,7 +1841,6 @@ void calc_anchors(char *datacfg, int num_of_clusters, int width, int height, int
     //float pointsdata[] = { 1,1, 2,2, 6,6, 5,5, 10,10 };
     float* rel_width_height_array = (float*)xcalloc(1000, sizeof(float));
 
-
     list *options = read_data_cfg(datacfg);
     char *train_images = option_find_str(options, "train", "data/train.list");
     list *plist = get_paths(train_images);
@@ -1856,14 +1855,17 @@ void calc_anchors(char *datacfg, int num_of_clusters, int width, int height, int
     printf(" read labels from %d images \n", number_of_images);
 
     int i, j;
+
     for (i = 0; i < number_of_images; ++i) {
         char *path = paths[i];
         char labelpath[4096];
         replace_image_to_label(path, labelpath);
 
         int num_labels = 0;
-        box_label *truth = read_boxes(labelpath, &num_labels);
-        //printf(" new path: %s \n", labelpath);
+        //Rbox_label* truth = read_Rboxes(labelpath, &num_labels); 
+        box_label* truth = read_boxes(labelpath, &num_labels); 
+
+        printf(" new path: %s \n", labelpath);
         char *buff = (char*)xcalloc(6144, sizeof(char));
         for (j = 0; j < num_labels; ++j)
         {
@@ -2009,8 +2011,189 @@ void calc_anchors(char *datacfg, int num_of_clusters, int width, int height, int
 
     getchar();
 }
+//Ryolo
+void calc_Ryolo_anchors(char* datacfg, int num_of_clusters, int width, int height, int show)
+{
+	printf("\n num_of_clusters = %d, width = %d, height = %d \n", num_of_clusters, width, height);
+	if (width < 0 || height < 0) {
+		printf("Usage: darknet detector calc_anchors data/voc.data -num_of_clusters 9 -width 416 -height 416 \n");
+		printf("Error: set width and height \n");
+		return;
+	}
+
+	//float pointsdata[] = { 1,1, 2,2, 6,6, 5,5, 10,10 };
+	float* rel_width_height_array = (float*)xcalloc(1000, sizeof(float));
+
+	list* options = read_data_cfg(datacfg);
+	char* train_images = option_find_str(options, "train", "data/train.list");
+	list* plist = get_paths(train_images);
+	int number_of_images = plist->size;
+	char** paths = (char**)list_to_array(plist);
+
+	int classes = option_find_int(options, "classes", 1);
+	int* counter_per_class = (int*)xcalloc(classes, sizeof(int));
+
+	srand(time(0));
+	int number_of_boxes = 0;
+	printf(" read labels from %d images \n", number_of_images);
+
+	int i, j;
+
+	for (i = 0; i < number_of_images; ++i) {
+		char* path = paths[i];
+		char labelpath[4096];
+		replace_image_to_label(path, labelpath);
+
+		int num_labels = 0;
+		Rbox_label* truth = read_Rboxes(labelpath, &num_labels, width, height);
+		//box_label* truth = read_boxes(labelpath, &num_labels);
+
+		printf(" new path: %s \n", labelpath);
+		char* buff = (char*)xcalloc(6144, sizeof(char));
+		for (j = 0; j < num_labels; ++j)
+		{
+			if (truth[j].x > 1 || truth[j].x <= 0 || truth[j].y > 1 || truth[j].y <= 0 ||
+				truth[j].w > 1 || truth[j].w <= 0 || truth[j].h > 1 || truth[j].h <= 0)
+			{
+				printf("\n\nWrong label: %s - j = %d, x = %f, y = %f, width = %f, height = %f \n",
+					labelpath, j, truth[j].x, truth[j].y, truth[j].w, truth[j].h);
+				sprintf(buff, "echo \"Wrong label: %s - j = %d, x = %f, y = %f, width = %f, height = %f\" >> bad_label.list",
+					labelpath, j, truth[j].x, truth[j].y, truth[j].w, truth[j].h);
+				system(buff);
+				if (check_mistakes) getchar();
+			}
+			if (truth[j].id >= classes) {
+				classes = truth[j].id + 1;
+				counter_per_class = (int*)xrealloc(counter_per_class, classes * sizeof(int));
+			}
+			counter_per_class[truth[j].id]++;
+
+			number_of_boxes++;
+			rel_width_height_array = (float*)xrealloc(rel_width_height_array, 2 * number_of_boxes * sizeof(float));
+
+			rel_width_height_array[number_of_boxes * 2 - 2] = truth[j].w * width;
+			rel_width_height_array[number_of_boxes * 2 - 1] = truth[j].h * height;
+			printf("\r loaded \t image: %d \t box: %d", i + 1, number_of_boxes);
+		}
+		free(buff);
+	}
+	printf("\n all loaded. \n");
+	printf("\n calculating k-means++ ...");
+
+	matrix boxes_data;
+	model anchors_data;
+	boxes_data = make_matrix(number_of_boxes, 2);
+
+	printf("\n");
+	for (i = 0; i < number_of_boxes; ++i) {
+		boxes_data.vals[i][0] = rel_width_height_array[i * 2];
+		boxes_data.vals[i][1] = rel_width_height_array[i * 2 + 1];
+		//if (w > 410 || h > 410) printf("i:%d,  w = %f, h = %f \n", i, w, h);
+	}
+
+	// Is used: distance(box, centroid) = 1 - IoU(box, centroid)
+
+	// K-means
+	anchors_data = do_kmeans(boxes_data, num_of_clusters);
+
+	qsort((void*)anchors_data.centers.vals, num_of_clusters, 2 * sizeof(float), (__compar_fn_t)anchors_data_comparator);
+
+	//gen_anchors.py = 1.19, 1.99, 2.79, 4.60, 4.53, 8.92, 8.06, 5.29, 10.32, 10.66
+	//float orig_anch[] = { 1.19, 1.99, 2.79, 4.60, 4.53, 8.92, 8.06, 5.29, 10.32, 10.66 };
+
+	printf("\n");
+	float avg_iou = 0;
+	for (i = 0; i < number_of_boxes; ++i) {
+		float box_w = rel_width_height_array[i * 2]; //points->data.fl[i * 2];
+		float box_h = rel_width_height_array[i * 2 + 1]; //points->data.fl[i * 2 + 1];
+														 //int cluster_idx = labels->data.i[i];
+		int cluster_idx = 0;
+		float min_dist = FLT_MAX;
+		float best_iou = 0;
+		for (j = 0; j < num_of_clusters; ++j) {
+			float anchor_w = anchors_data.centers.vals[j][0];   // centers->data.fl[j * 2];
+			float anchor_h = anchors_data.centers.vals[j][1];   // centers->data.fl[j * 2 + 1];
+			float min_w = (box_w < anchor_w) ? box_w : anchor_w;
+			float min_h = (box_h < anchor_h) ? box_h : anchor_h;
+			float box_intersect = min_w * min_h;
+			float box_union = box_w * box_h + anchor_w * anchor_h - box_intersect;
+			float iou = box_intersect / box_union;
+			float distance = 1 - iou;
+			if (distance < min_dist) {
+				min_dist = distance;
+				cluster_idx = j;
+				best_iou = iou;
+			}
+		}
+
+		float anchor_w = anchors_data.centers.vals[cluster_idx][0]; //centers->data.fl[cluster_idx * 2];
+		float anchor_h = anchors_data.centers.vals[cluster_idx][1]; //centers->data.fl[cluster_idx * 2 + 1];
+		if (best_iou > 1 || best_iou < 0) { // || box_w > width || box_h > height) {
+			printf(" Wrong label: i = %d, box_w = %f, box_h = %f, anchor_w = %f, anchor_h = %f, iou = %f \n",
+				i, box_w, box_h, anchor_w, anchor_h, best_iou);
+		}
+		else avg_iou += best_iou;
+	}
+
+	char buff[1024];
+	FILE* fwc = fopen("counters_per_class.txt", "wb");
+	if (fwc) {
+		sprintf(buff, "counters_per_class = ");
+		printf("\n%s", buff);
+		fwrite(buff, sizeof(char), strlen(buff), fwc);
+		for (i = 0; i < classes; ++i) {
+			sprintf(buff, "%d", counter_per_class[i]);
+			printf("%s", buff);
+			fwrite(buff, sizeof(char), strlen(buff), fwc);
+			if (i < classes - 1) {
+				fwrite(", ", sizeof(char), 2, fwc);
+				printf(", ");
+			}
+		}
+		printf("\n");
+		fclose(fwc);
+	}
+	else {
+		printf(" Error: file counters_per_class.txt can't be open \n");
+	}
+
+	avg_iou = 100 * avg_iou / number_of_boxes;
+	printf("\n avg IoU = %2.2f %% \n", avg_iou);
 
 
+	FILE* fw = fopen("anchors.txt", "wb");
+	if (fw) {
+		printf("\nSaving anchors to the file: anchors.txt \n");
+		printf("anchors = ");
+		for (i = 0; i < num_of_clusters; ++i) {
+			float anchor_w = anchors_data.centers.vals[i][0]; //centers->data.fl[i * 2];
+			float anchor_h = anchors_data.centers.vals[i][1]; //centers->data.fl[i * 2 + 1];
+			if (width > 32) sprintf(buff, "%3.0f,%3.0f", anchor_w, anchor_h);
+			else sprintf(buff, "%2.4f,%2.4f", anchor_w, anchor_h);
+			printf("%s", buff);
+			fwrite(buff, sizeof(char), strlen(buff), fw);
+			if (i + 1 < num_of_clusters) {
+				fwrite(", ", sizeof(char), 2, fw);
+				printf(", ");
+			}
+		}
+		printf("\n");
+		fclose(fw);
+	}
+	else {
+		printf(" Error: file anchors.txt can't be open \n");
+	}
+
+	if (show) {
+#ifdef OPENCV
+		show_acnhors(number_of_boxes, num_of_clusters, rel_width_height_array, anchors_data, width, height);
+#endif // OPENCV
+	}
+	free(rel_width_height_array);
+	free(counter_per_class);
+
+	getchar();
+}
 void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh,
     float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int benchmark_layers)
 {
@@ -2251,13 +2434,13 @@ void test_Rdetector(char* datacfg, char* cfgfile, char* weightfile, char* filena
 
                 layer l = net.layers[net.n - 1];
                 int k;
-                for (k = 0; k < net.n; ++k) {
-                    layer lk = net.layers[k];
-                    if (lk.type == YOLO || lk.type == GAUSSIAN_YOLO || lk.type == REGION) {
-                        l = lk;
-                        printf(" Detection layer: %d - type = %d \n", k, l.type);
-                    }
-                }
+				for (k = 0; k < net.n; ++k) {
+					layer lk = net.layers[k];
+					if (lk.type == YOLO || lk.type == RYOLO || lk.type == GAUSSIAN_YOLO || lk.type == REGION) {
+						l = lk;
+						printf(" Detection layer: %d - type = %d \n", k, l.type);
+					}
+				}
 
                 //box *boxes = calloc(l.w*l.h*l.n, sizeof(box));
                 //float **probs = calloc(l.w*l.h*l.n, sizeof(float*));
@@ -2275,8 +2458,8 @@ void test_Rdetector(char* datacfg, char* cfgfile, char* weightfile, char* filena
                 int nboxes = 0;
                 detection* dets = get_network_boxes(&net, im.w, im.h, thresh, hier_thresh, 0, 1, &nboxes, letter_box);
                 if (nms) {
-                    if (l.nms_kind == DEFAULT_NMS) do_nms_sort(dets, nboxes, l.classes, nms);
-                    else diounms_sort(dets, nboxes, l.classes, nms, l.nms_kind, l.beta_nms);
+                    if (l.nms_kind == DEFAULT_NMS) Ryolo_do_nms_sort(dets, nboxes, l.classes, nms);
+                    else Ryolo_diounms_sort(dets, nboxes, l.classes, nms, l.nms_kind, l.beta_nms);
                 }
 
                 draw_Rdetections_v3(im, dets, nboxes, thresh, names, alphabet, l.classes, ext_output, path);
@@ -2465,7 +2648,6 @@ void draw_object(char *datacfg, char *cfgfile, char *weightfile, char *filename,
         else sized = resize_image(im, net.w, net.h);
 
         image src_sized = copy_image(sized);
-
         layer l = net.layers[net.n - 1];
         int k;
         for (k = 0; k < net.n; ++k) {
@@ -2648,7 +2830,6 @@ void run_detector(int argc, char **argv)
     }
 
     int clear = find_arg(argc, argv, "-clear");
-
     char *datacfg = argv[3];
     char *cfg = argv[4];
     char *weights = (argc > 5) ? argv[5] : 0;
@@ -2666,6 +2847,7 @@ void run_detector(int argc, char **argv)
     else if (0 == strcmp(argv[2], "recall")) validate_detector_recall(datacfg, cfg, weights);
     else if (0 == strcmp(argv[2], "map")) validate_detector_map(datacfg, cfg, weights, thresh, iou_thresh, map_points, letter_box, NULL);
     else if (0 == strcmp(argv[2], "calc_anchors")) calc_anchors(datacfg, num_of_clusters, width, height, show);
+    else if (0 == strcmp(argv[2], "calc_Ryolo_anchors")) calc_Ryolo_anchors(datacfg, num_of_clusters, width, height, show);//Ryolo
     else if (0 == strcmp(argv[2], "draw")) {
         int it_num = 100;
         draw_object(datacfg, cfg, weights, filename, thresh, dont_show, it_num, letter_box, benchmark_layers);

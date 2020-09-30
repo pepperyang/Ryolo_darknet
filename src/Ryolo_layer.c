@@ -1,5 +1,4 @@
 #include "Ryolo_layer.h"
-//#include "yolo_layer.h"
 #include "activations.h"
 #include "blas.h"
 #include "box.h"
@@ -167,15 +166,7 @@ static inline float clip_value(float val, const float max_val)
     }
     return val;
 }
-//Ryolo
-boxabs Rbox_c(Rbox a, Rbox b) {
-    boxabs ba = { 0 };
-    ba.top = fmin(a.y - a.h / 2, b.y - b.h / 2);
-    ba.bot = fmax(a.y + a.h / 2, b.y + b.h / 2);
-    ba.left = fmin(a.x - a.w / 2, b.x - b.w / 2);
-    ba.right = fmax(a.x + a.w / 2, b.x + b.w / 2);
-    return ba;
-}
+
 //Ryolo
 float Rbox_diou(Rbox a, Rbox b)
 {
@@ -274,14 +265,14 @@ ious delta_Ryolo_box(Rbox truth, float *x, float *biases, int n, int index, int 
         delta[index + 1 * stride] += scale * (ty - x[index + 1 * stride]) * iou_normalizer;
         delta[index + 2 * stride] += scale * (tw - x[index + 2 * stride]) * iou_normalizer;
         delta[index + 3 * stride] += scale * (th - x[index + 3 * stride]) * iou_normalizer;
-        delta[index + 4 * stride] += 1.2*scale * (tr1 - x[index + 4 * stride]);//rotate_Ryolo
-        delta[index + 5 * stride] += 1.2*scale * (tr2 - x[index + 5 * stride]);//rotate_Ryolo
-        delta[index + 6 * stride] += 1.2 * scale * (jud - x[index + 6 * stride]);//rotate_Ryolo
-        delta[index + 7 * stride] += 1.2 * scale * (adv - x[index + 7 * stride]);//rotate_Ryolo
-        printf("tr1 = %f,   pred1 = %f\n", tr1, x[index + 4 * stride]);//rotate_Ryolo
-        printf("tr2 = %f,   pred2 = %f\n", tr2, x[index + 5 * stride]);//rotate_Ryolo
-        printf("jud = %f\n", x[index + 6 * stride]);//rotate_Ryolo
-        printf("adv = %f\n", x[index + 7 * stride]);//rotate_Ryolo
+        delta[index + 4 * stride] += 5*scale * (tr1 - x[index + 4 * stride]);//rotate_Ryolo
+        delta[index + 5 * stride] += 5*scale * (tr2 - x[index + 5 * stride]);//rotate_Ryolo
+        delta[index + 6 * stride] += 5 * scale * (jud - x[index + 6 * stride]);//rotate_Ryolo
+        delta[index + 7 * stride] += 5 * scale * (adv - x[index + 7 * stride]);//rotate_Ryolo
+        //printf("tr1 = %f,   pred1 = %f\n", tr1, x[index + 4 * stride]);//rotate_Ryolo
+        //printf("tr2 = %f,   pred2 = %f\n", tr2, x[index + 5 * stride]);//rotate_Ryolo
+        //printf("jud = %f\n", x[index + 6 * stride]);//rotate_Ryolo
+        //printf("adv = %f\n", x[index + 7 * stride]);//rotate_Ryolo
 
     }
     else {
@@ -339,12 +330,11 @@ ious delta_Ryolo_box(Rbox truth, float *x, float *biases, int n, int index, int 
         delta[index + 1 * stride] += dy;
         delta[index + 2 * stride] += dw;
         delta[index + 3 * stride] += dh;
-        delta[index + 4 * stride] += 1.1 * scale * (tr1 - x[index + 4 * stride]);//rotate_Ryolo
-        delta[index + 5 * stride] += 1.1 * scale * (tr2 - x[index + 5 * stride]);//rotate_Ryolo
-        delta[index + 6 * stride] += 1.1 * scale * (jud - x[index + 6 * stride]);//rotate_Ryolo
-        delta[index + 7 * stride] += 1.1 * scale * (adv - x[index + 7 * stride]);//rotate_Ryolo
-        //printf("tr1 = %f,   pred1 = %f,   delta_cos = %f\n", tr1, x[index + 4 * stride], delta[index + 4 * stride]);//rotate_Ryolo
-        //printf("tr2 = %f,   pred2 = %f,   delta_sin = %f\n", tr2, x[index + 5 * stride], delta[index + 5 * stride]);//rotate_Ryolo
+        delta[index + 4 * stride] += 5 * scale * (tr1 - x[index + 4 * stride]);//rotate_Ryolo
+        delta[index + 5 * stride] += 5 * scale * (tr2 - x[index + 5 * stride]);//rotate_Ryolo
+        delta[index + 6 * stride] += 5 * scale * (jud - x[index + 6 * stride]);//rotate_Ryolo
+        delta[index + 7 * stride] += 5 * scale * (adv - x[index + 7 * stride]);//rotate_Ryolo
+
 
     }
 
@@ -456,46 +446,6 @@ static int Rentry_index(layer l, int batch, int location, int entry)
     return batch*l.outputs + n*l.w*l.h*(4+l.classes+1+2+1+1) + entry*l.w*l.h + loc;//rotate_Ryolo
 }
 
-
-//Ryolo
-float Rbox_iou(Rbox a, Rbox b)
-{
-    //return box_intersection(a, b)/box_union(a, b);
-    float I = Rbox_intersection(a, b);
-    float U = Rbox_union(a, b);
-    if (I == 0 || U == 0) {
-        return 0;
-    }
-    return I / U;
-}
-//Ryolo
-float overlap_Ryolo(float x1, float w1, float x2, float w2)
-{
-    float l1 = x1 - w1 / 2;
-    float l2 = x2 - w2 / 2;
-    float left = l1 > l2 ? l1 : l2;
-    float r1 = x1 + w1 / 2;
-    float r2 = x2 + w2 / 2;
-    float right = r1 < r2 ? r1 : r2;
-    return right - left;
-}
-//Ryolo
-float Rbox_intersection(Rbox a, Rbox b)
-{
-    float w = overlap_Ryolo(a.x, a.w, b.x, b.w);
-    float h = overlap_Ryolo(a.y, a.h, b.y, b.h);
-    if (w < 0 || h < 0) return 0;
-    float area = w * h;
-    return area;
-}
-
-//Ryolo
-float Rbox_union(Rbox a, Rbox b)
-{
-    float i = Rbox_intersection(a, b);
-    float u = a.w * a.h + b.w * b.h - i;
-    return u;
-}
 void forward_Ryolo_layer(const layer l, network_state state)
 
 //x y w h r1 r2 jud  adv obj c0 c1 ...
@@ -731,7 +681,7 @@ void forward_Ryolo_layer(const layer l, network_state state)
             for (n = 0; n < l.total; ++n) {
                 int mask_n = int_index(l.mask, n, l.n);
                 if (mask_n >= 0 && n != best_n && l.iou_thresh < 1.0f) {
-                    box pred = { 0 };
+                    Rbox pred = { 0 };
                     pred.w = l.biases[2 * n] / state.net.w;
                     pred.h = l.biases[2 * n + 1] / state.net.h;
                     float iou = Rbox_iou_kind(pred, truth_shift, l.iou_thresh_kind); // IOU, GIOU, MSE, DIOU, CIOU
@@ -891,7 +841,7 @@ void correct_Ryolo_boxes(detection *dets, int n, int w, int h, int netw, int net
     float ratioh = (float)new_h / neth;
     for (i = 0; i < n; ++i) {
 
-        box b = dets[i].bbox;
+        Rbox b = dets[i].Rbbox;
         // x = ( x - (deltaw/2)/netw ) / ratiow;
         //   x - [(1/2 the difference of the network width and rotated width) / (network width)]
         b.x = (b.x - deltaw / 2. / netw) / ratiow;
@@ -908,7 +858,7 @@ void correct_Ryolo_boxes(detection *dets, int n, int w, int h, int netw, int net
             b.h *= h;
         }
 
-        dets[i].bbox = b;
+        dets[i].Rbbox = b;
     }
 }
 

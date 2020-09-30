@@ -98,7 +98,7 @@ data load_data_augment(char **paths, int n, int m, char **labels, int k, tree *h
 data load_go(char *filename);
 
 box_label *read_boxes(char *filename, int *n);
-box_label* Rread_boxes(char* filename, int* n);//Ryolo
+Rbox_label* read_Rboxes(char* filename, int* n, int net_w, int net_h);//Ryolo
 data load_cifar10_data(char *filename);
 data load_all_cifar10();
 

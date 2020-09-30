@@ -240,7 +240,7 @@ box_label *read_boxes(char *filename, int *n)
     return boxes;
 }
 //Ryolo
-Rbox_label* read_Rboxes(char* filename, int* n)
+Rbox_label* read_Rboxes(char* filename, int* n, int net_w, int net_h)
 {
     Rbox_label* Rboxes = (Rbox_label*)xcalloc(1, sizeof(Rbox_label));
     FILE* file = fopen(filename, "r");
@@ -271,6 +271,9 @@ Rbox_label* read_Rboxes(char* filename, int* n)
     int adv = 0;//Ryolo
     int id;
     int count = 0;
+    float R = sqrt(pow(net_w,2) + pow(net_h,2));
+    float ratio_w = R / net_w;
+    float ratio_h = R / net_h;
     while (fscanf(file, "%d %f %f %f %f %f", &id, &x, &y, &theta, &ra, &rb) == 6) {//Ryolo
         
         //&id, & x, & y, & w, & h, & r1, & r2, & jud, & adv
@@ -293,21 +296,21 @@ Rbox_label* read_Rboxes(char* filename, int* n)
 
         if (theta < 0) { theta = theta + pi; }
 
-
-
         if (0 < theta && theta < 0.5*pi) {
-            w = ra * cos(theta) + rb * sin(theta);
-            h = ra * sin(theta) + rb * cos(theta);
-            r1 = (ra * cos(theta))/w;
-            r2 = (ra * sin(theta))/h;
+
+            w = ratio_w*(ra * cos(theta) + rb * sin(theta));
+            h = ratio_h*(ra * sin(theta) + rb * cos(theta));
+            r1 = (ra * cos(theta))/(ra  * cos(theta) + rb  * sin(theta));
+            r2 = (ra * sin(theta))/(ra * sin(theta) + rb  * cos(theta));
+
         }
 
 		if (0.5*pi < theta && theta < pi) {
             theta = pi - theta;
-			w = ra * cos(theta) + rb * sin(theta);
-			h = ra * sin(theta) + rb * cos(theta);
-			r1 =  (rb * sin(theta))/w;
-			r2 = (rb * cos(theta))/h;
+			w = ratio_w * (ra * cos(theta) + rb * sin(theta));
+			h = ratio_h * (ra * sin(theta) + rb * cos(theta));
+			r1 =  (rb * sin(theta))/(ra * cos(theta) + rb * sin(theta));
+			r2 = (rb * cos(theta))/(ra * sin(theta) + rb * cos(theta));
 		}
 
         Rboxes = (Rbox_label*)xrealloc(Rboxes, (count + 1) * sizeof(Rbox_label));
@@ -531,7 +534,7 @@ int fill_truth_Rdetection(const char* path, int num_boxes, int truth_size, float
 
     int count = 0;
     int i;
-    Rbox_label* Rboxes = read_Rboxes(labelpath, &count);
+    Rbox_label* Rboxes = read_Rboxes(labelpath, &count, net_w, net_h);
     int min_w_h = 0;
     float lowest_w = 1.F / net_w;
     float lowest_h = 1.F / net_h;

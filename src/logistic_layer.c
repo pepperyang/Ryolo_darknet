@@ -1,7 +1,6 @@
 #include "logistic_layer.h"
 #include "activations.h"
 #include "blas.h"
-/*#include "cuda.h"*/
 #include "dark_cuda.h"//Syolo
 #include <float.h>
 #include <math.h>

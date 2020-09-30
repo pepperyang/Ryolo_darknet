@@ -329,7 +329,7 @@ image **load_alphabet()
         alphabets[j] = (image*)xcalloc(128, sizeof(image));
         for(i = 32; i < 127; ++i){
             char buff[256];
-            sprintf(buff, "data/labels/%d_%d.png", i, j);
+            sprintf(buff, "C:/Users/zheng/Desktop/darknet-master/build/darknet/x64/data/labels/%d_%d.png", i, j);//µ÷ÊÔÓÃ
             alphabets[j][i] = load_image_color(buff, 0, 0);
         }
     }
@@ -531,179 +531,99 @@ void draw_Rdetections_v3(image im, detection* dets, int num, float thresh, char*
 
     // text output
     qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_lefts);
+
     int i;
     FILE* fpWrite = fopen("result.txt", "a");
-    if (fpWrite == NULL)
-    {
-        return 0;
-    }
-    fprintf(fpWrite, "%s\n", path_print);
+        if (fpWrite == NULL)return 0;
+        fprintf(fpWrite, "%s\n", path_print);
+        printf("%s\n", path_print);
     fclose(fpWrite);
     for (i = 0; i < selected_detections_num; ++i) {
         const int best_class = selected_detections[i].best_class;
         //if (selected_detections[i].det.prob[best_class] * 100 > 70) {
-        printf("%s: %.0f%%", names[best_class], selected_detections[i].det.prob[best_class] * 100);
+        //printf("%s: %.0f%%", names[best_class], selected_detections[i].det.prob[best_class] * 100);
         //}
-        if (ext_output)
+        //if (ext_output)
 
+                FILE* fpWrite = fopen("result.txt", "a");
+                    if (fpWrite == NULL)return 0;
 
+				    fprintf(fpWrite, "%s:%.0f%% x: %4.0f y: %4.0f width: %4.0f height: %4.0f r1: %.6f r2: %.6f jud: %.6f adv: %.6f\n  ",
+				    names[best_class],
+				    selected_detections[i].det.prob[best_class] * 100,
+				    (selected_detections[i].det.Rbbox.x) * im.w,
+				    (selected_detections[i].det.Rbbox.y) * im.h,
+				    selected_detections[i].det.Rbbox.w* im.w,
+				    selected_detections[i].det.Rbbox.h* im.h,
+				    selected_detections[i].det.Rbbox.r1,
+				    selected_detections[i].det.Rbbox.r2,
+				    selected_detections[i].det.Rbbox.jud,
+				    selected_detections[i].det.Rbbox.adv);
 
-            /*cos_theta = (selected_detections[i].det.bbox.r1 - 0.5) * 2;
-            sin_theta = (selected_detections[i].det.bbox.r2 - 0.5) * 2;
-            if (sin_theta > 1 )sin_theta  = 1;
-            if (sin_theta < -1 )sin_theta = -1;
-            if (cos_theta > 1)cos_theta = 1;
-            if (cos_theta < -1)cos_theta = -1;
-            if (sin_theta == 0 && cos_theta == 1) theta = 0;
-            if (sin_theta == 0 && cos_theta == -1)theta = 180;
-            if (sin_theta == 1 && cos_theta == 0)theta = 90;
-            if (sin_theta == -1 && cos_theta == 0)theta = 270;
-            if (sin_theta > 0 && cos_theta > 0)
-                theta = (acos(cos_theta)) / 2 / 3.1415926 * 360;
-            if (sin_theta > 0 && cos_theta < 0)
-                theta = (acos(cos_theta)) / 2 / 3.1415926 * 360 ;
-            if (sin_theta < 0 && cos_theta < 0)
-                theta = (3.1415926 +(3.1415926- acos(cos_theta))) / 2 / 3.1415926 * 360 ;
-            if (sin_theta < 0 && cos_theta > 0)
-                theta = (3/2*3.1415926+ (3 / 2 * 3.1415926-acos(cos_theta))) / 2 / 3.1415926 * 360 ;*/
-
-            printf("\t(left_x: %4.0f   top_y: %4.0f   width: %4.0f   height: %4.0f   r1: %.6f   r2: %.6f   jud: %.6f   adv: %.6f)\n",//rotate_yolo
-                round((selected_detections[i].det.Rbbox.x - selected_detections[i].det.Rbbox.w / 2) * im.w),
-                round((selected_detections[i].det.Rbbox.y - selected_detections[i].det.Rbbox.h / 2) * im.h),
-                round(selected_detections[i].det.Rbbox.w * im.w),
-                round(selected_detections[i].det.Rbbox.h * im.h),
-                selected_detections[i].det.Rbbox.r1,
-                selected_detections[i].det.Rbbox.r2,
-                selected_detections[i].det.Rbbox.jud,
-                selected_detections[i].det.Rbbox.adv);
-
-        FILE* fpWrite = fopen("result.txt", "a");
-        if (fpWrite == NULL)
-        {
-            return 0;
-        }//rotate_yolo
-        fprintf(fpWrite, "%s:%.0f%% left_x: %4.0f top_y: %4.0f width: %4.0f height: %4.0f r1: %.6f r2: %.6f jud: %.6f adv: %.6f\n  ",
-            names[best_class],
-            selected_detections[i].det.prob[best_class] * 100,
-            round((selected_detections[i].det.Rbbox.x - selected_detections[i].det.Rbbox.w / 2) * im.w),
-            round((selected_detections[i].det.Rbbox.y - selected_detections[i].det.Rbbox.h / 2) * im.h),
-            round(selected_detections[i].det.Rbbox.w * im.w),
-            round(selected_detections[i].det.Rbbox.h * im.h),
-            selected_detections[i].det.Rbbox.r1,
-            selected_detections[i].det.Rbbox.r2,
-            selected_detections[i].det.Rbbox.jud,
-            selected_detections[i].det.Rbbox.adv);
-
-        fclose(fpWrite);
+                 fclose(fpWrite);
         //         else
         //             printf("\n");
         int j;
         for (j = 0; j < classes; ++j) {
             if (selected_detections[i].det.prob[j] > thresh && j != best_class) {
-                printf("%s: %.0f%%", names[j], selected_detections[i].det.prob[j] * 100);
-                printf("\n");
-                if (ext_output)
-                    /*cos_theta = (selected_detections[i].det.bbox.r1 - 0.5) * 2;
-                    sin_theta = (selected_detections[i].det.bbox.r2 - 0.5) * 2;
-                    theta;
-                    if (sin_theta > 1)sin_theta = 1;
-                    if (sin_theta < -1)sin_theta = -1;
-                    if (cos_theta > 1)cos_theta = 1;
-                    if (cos_theta < -1)cos_theta = -1;
-                if (sin_theta == 0 && cos_theta == 1) theta = 0;
-                if (sin_theta == 0 && cos_theta == -1)theta = 180;
-                if (sin_theta == 1 && cos_theta == 0)theta = 90;
-                if (sin_theta == -1 && cos_theta == 0)theta = 270;
-                if (sin_theta > 0 && cos_theta > 0)
-                    theta = (acos(cos_theta)) / 2 / 3.1415926 * 360;
-                if (sin_theta > 0 && cos_theta < 0)
-                    theta = (acos(cos_theta)) / 2 / 3.1415926 * 360;
-                if (sin_theta < 0 && cos_theta < 0)
-                    theta = (3.1415926 + (3.1415926 - acos(cos_theta))) / 2 / 3.1415926 * 360;
-                if (sin_theta < 0 && cos_theta > 0)
-                    theta = (3 / 2 * 3.1415926 + (3 / 2 * 3.1415926 - acos(cos_theta))) / 2 / 3.1415926 * 360;*/
+                //if (ext_output)
+				    FILE* fpWrite = fopen("result.txt", "a");
+				        if (fpWrite == NULL) return 0;
 
-                    printf("\t(left_x: %4.0f   top_y: %4.0f   width: %4.0f   height: %4.0f   r1: %.6f   r2: %.6f   jud: %.6f   adv: %.6f)\n",//rotate_yolo
-                        round((selected_detections[i].det.Rbbox.x - selected_detections[i].det.Rbbox.w / 2) * im.w),
-                        round((selected_detections[i].det.Rbbox.y - selected_detections[i].det.Rbbox.h / 2) * im.h),
-                        round(selected_detections[i].det.Rbbox.w * im.w),
-                        round(selected_detections[i].det.Rbbox.h * im.h),
-                        selected_detections[i].det.Rbbox.r1,
-                        selected_detections[i].det.Rbbox.r2,
-                        selected_detections[i].det.Rbbox.jud,
-                        selected_detections[i].det.Rbbox.adv);
-                FILE* fpWrite = fopen("result.txt", "a");
-                if (fpWrite == NULL)
-                {
-                    return 0;
-                }
-				fprintf(fpWrite, "%s:%.0f%% left_x: %4.0f top_y: %4.0f width: %4.0f height: %4.0f r1: %.6f r2: %.6f jud: %.6f adv: %.6f\n  ",
-					names[best_class],
-					selected_detections[i].det.prob[best_class] * 100,
-					round((selected_detections[i].det.Rbbox.x - selected_detections[i].det.Rbbox.w / 2) * im.w),
-					round((selected_detections[i].det.Rbbox.y - selected_detections[i].det.Rbbox.h / 2) * im.h),
-					round(selected_detections[i].det.Rbbox.w * im.w),
-					round(selected_detections[i].det.Rbbox.h * im.h),
-					selected_detections[i].det.Rbbox.r1,
-					selected_detections[i].det.Rbbox.r2,
-					selected_detections[i].det.Rbbox.jud,
-					selected_detections[i].det.Rbbox.adv);
+				        fprintf(fpWrite, "%s:%.0f%% x: %4.0f y: %4.0f width: %4.0f height: %4.0f r1: %.6f r2: %.6f jud: %.6f adv: %.6f\n  ",
+				        names[best_class],
+					    selected_detections[i].det.prob[best_class] * 100,
+					    (selected_detections[i].det.Rbbox.x) * im.w,
+					    (selected_detections[i].det.Rbbox.y) * im.h,
+					    selected_detections[i].det.Rbbox.w* im.w,
+					    selected_detections[i].det.Rbbox.h* im.h,
+					    selected_detections[i].det.Rbbox.r1,
+					    selected_detections[i].det.Rbbox.r2,
+					    selected_detections[i].det.Rbbox.jud,
+					    selected_detections[i].det.Rbbox.adv);
 
-                fclose(fpWrite);
-
-
+                    fclose(fpWrite);
             }
             //else
-
-
         }
     }
-
     // image output
     qsort(selected_detections, selected_detections_num, sizeof(*selected_detections), compare_by_probs);
     for (i = 0; i < selected_detections_num; ++i) {
         int width = im.h * .002;
         if (width < 1)
             width = 1;
-
         /*
         if(0){
         width = pow(prob, 1./2.)*10+1;
         alphabet = 0;
         }
         */
-
         //printf("%d %s: %.0f%%\n", i, names[selected_detections[i].best_class], prob*100);
         int offset = selected_detections[i].best_class * 123457 % classes;
         float red = get_color(2, offset, classes);
         float green = get_color(1, offset, classes);
         float blue = get_color(0, offset, classes);
         float rgb[3];
-
         //width = prob*20+2;
-
         rgb[0] = red;
         rgb[1] = green;
         rgb[2] = blue;
         Rbox b = selected_detections[i].det.Rbbox;
         //printf("%f %f %f %f\n", b.x, b.y, b.w, b.h);
-
         int left = (b.x - b.w / 2.) * im.w;
         int right = (b.x + b.w / 2.) * im.w;
         int top = (b.y - b.h / 2.) * im.h;
         int bot = (b.y + b.h / 2.) * im.h;
-
         if (left < 0) left = 0;
         if (right > im.w - 1) right = im.w - 1;
         if (top < 0) top = 0;
         if (bot > im.h - 1) bot = im.h - 1;
-
         //int b_x_center = (left + right) / 2;
         //int b_y_center = (top + bot) / 2;
         //int b_width = right - left;
         //int b_height = bot - top;
         //sprintf(labelstr, "%d x %d - w: %d, h: %d", b_x_center, b_y_center, b_width, b_height);
-
         // you should create directory: result_img
         //static int copied_frame_id = -1;
         //static image copy_img;
@@ -720,7 +640,6 @@ void draw_Rdetections_v3(image im, detection* dets, int num, float thresh, char*
         //sprintf(image_name, "result_img/img_%d_%d_%d_%s.jpg", frame_id, img_id, best_class_id, names[best_class_id]);
         //save_image(cropped_im, image_name);
         //free_image(cropped_im);
-
         if (im.c == 1) {
             draw_box_width_bw(im, left, top, right, bot, width, 0.8);    // 1 channel Black-White
         }
@@ -1047,7 +966,7 @@ void save_image_options(image im, const char *name, IMTYPE f, int quality)
 
 void save_image(image im, const char *name)
 {
-    save_image_options(im, name, JPG, 80);
+    save_image_options(im, name, JPG, 100);
 }
 
 void save_image_jpg(image p, const char *name)

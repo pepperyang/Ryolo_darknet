@@ -21,7 +21,6 @@ char* GetFilename_seg(char* p)//Syolo
 void train_segmenter(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int display)
 {
     int i;
-
     float avg_loss = -1;
     char *base = basecfg(cfgfile);
     printf("%s\n", base);
